@@ -10,7 +10,7 @@
   (:export :parse))
 (in-package :sas-parser)
 
-;; blah blah blah.
+;;; api
 
 (defun parse (pathname)
   (with-open-file (*standard-input* pathname)
@@ -38,28 +38,53 @@
        (defun ,fn-name ()
          (match (read-line)
            ((begin ,name)
-            (let ((,var (,parser-fn)))
+            (let ((,var (funcall ,parser-fn)))
               (match (read-line)
                 ((end ,name)
-                 ,next)
+                 (funcall ,next))
                 (_ (sas-parse-error ,name)))))
            (_ ,@if-not-exists))))))
 
-(section-parser "version" *version* read (metric) (error "version 1 or 2 !"))
-(section-parser "metric" *metric* read (variable-num) (error "version 1 !"))
+;;; parse sections
 
-(defvar *variable-num*)
-(defun variable-num ()
-  (let ((*variable-num* (read)))
-    (assert (numberp *variable-num*))
-    (variable)))
+(defvar *count*)
+(defun call/counter (fn &optional (reader #'read))
+  (lambda ()
+    (let ((*count* (funcall reader)))
+      (assert (numberp *count*))
+      (funcall fn))))
+(defun next-section (continue next)
+  (lambda ()
+    (let ((*count* (1- *count*)))
+      (if (plusp *count*)
+          (funcall continue)
+          (funcall next)))))
 
-(section-parser "variable" *variables* read-mutex-group
-                (let ((*variable-num* (1- *variable-num*)))
-                  (if (plusp *variable-num*)
-                      (variable)
-                      (mutex-group)))
-                (error "insufficient number of variable sections !"))
+(section-parser "version" *version* #'read #'metric
+  (error "version 1 or 2 !"))
+(section-parser "metric" *metric* #'read (call/counter #'variable)
+  (error "version 1 !"))
+(section-parser "variable" *variables* #'read-variable (next-section #'variable (call/counter #'mutex-group))
+  (error "insufficient number of variable sections !"))
+(section-parser "mutex_group" *mutex-groups* #'read-mutex-group (next-section #'mutex-group #'state)
+  (error "insufficient number of mutex_group sections !"))
+(section-parser "state" *states* #'read-states #'goal
+  (error "missing states!"))
+(section-parser "goal" *goals* #'read-goals (call/counter #'operator)
+  (error "missing goals!"))
+(section-parser "operator" *operators* #'read-operator (next-section #'operator (call/counter #'rule))
+  (error "insufficient number of operator sections!"))
+(section-parser "rule" *rules* #'read-rule (next-section #'rule #'sg)
+  (error "insufficient number of rule sections!"))
+(section-parser "SG" *sgs* #'read-sg (next-section #'sg (call/counter #'dtg (lambda () (length *variables*))))
+  (error "insufficient number of sg sections!"))
+(section-parser "DTG" *dtgs* #'read-dtg (next-section #'dtg #'cg)
+  (error "insufficient number of dtg sections!"))
+(section-parser "CG" *cgs* #'read-cg #'finalize
+  (error "insufficient number of cg sections!"))
+
+(defun finalize ()
+  )
 
 ;; (defstruct variable name axiom range atoms)
 ;; (make-variable
@@ -68,75 +93,7 @@
 ;;  :range (int range)
 ;;  :atoms (mapcar #'parse-atom atoms))
 
-(defvar *mutex-group-num*)
-(defun mutex-group-num ()
-  (let ((*mutex-group-num* (read)))
-    (assert (numberp *mutex-group-num*))
-    (mutex-group)))
+;; (defun operator (s name prevails-num prevails effects-num effects cost)
+;;   )
 
-(section-parser "mutex_group" *mutex-groups* read-mutex-group
-    (let ((*mutex-group-num* (1- *mutex-group-num*)))
-      (if (plusp *mutex-group-num*)
-          (mutex-group)
-          (state)))
-  (error "insufficient number of mutex_group sections !"))
-
-(section-parser "state" *states* read-states (goal) (error "missing states!"))
-(section-parser "goal" *goals* read-goals (operator) (error "missing goals!"))
-
-(defvar *operator-num*)
-(defun operator-num ()
-  (let ((*operator-num* (read)))
-    (assert (numberp *operator-num*))
-    (operator)))
-
-(section-parser "operator" *operators* read-operator
-    (let ((*operator-num* (1- *operator-num*)))
-      (if (plusp *operator-num*)
-          (operator)
-          (rule)))
-  (error "insufficient number of operator sections!"))
-
-(defun operator (s name prevails-num prevails effects-num effects cost)
-  )
-
-
-(defvar *rule-num*)
-(defun rule-num ()
-  (let ((*rule-num* (read)))
-    (assert (numberp *rule-num*))
-    (rule)))
-
-(section-parser "rule" *rules* read-rule
-    (let ((*rule-num* (1- *rule-num*)))
-      (if (plusp *rule-num*)
-          (rule)
-          (sg)))
-  (error "insufficient number of rule sections!"))
-
-
-
-
-(section-parser "SG" *SGs* read-SG
-    (let ((*SG-num* (1- *SG-num*)))
-      (if (plusp *SG-num*)
-          (SG)
-          (sg)))
-  (error "insufficient number of SG sections!"))
-
-
-(section-parser "DTG" *DTGs* read-DTG
-    (let ((*DTG-num* (1- *DTG-num*)))
-      (if (plusp *DTG-num*)
-          (DTG)
-          (sg)))
-  (error "insufficient number of DTG sections!"))
-
-
-(section-parser "CG" *CGs* read-CG
-    (let ((*CG-num* (1- *CG-num*)))
-      (if (plusp *CG-num*)
-          (CG)
-          (sg)))
-  (error "insufficient number of CG sections!"))
-
+;;; contents
