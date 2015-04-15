@@ -18,9 +18,23 @@
 
 ;; run test with (run! test-name) 
 
-(test sas-parser
+(test translater-output
+  (for-all ((path (lambda ()
+                    (random-elt
+                     (directory
+                      (merge-pathnames
+                       "t/translated/*.sas"
+                       (asdf:system-source-directory :sas-parser)))))))
+    (finishes (parse path))))
 
-  )
 
 
+(test preprocessor-output
+  (for-all ((path (lambda ()
+                    (random-elt
+                     (directory
+                      (merge-pathnames
+                       "t/preprocessed/*.sasp"
+                       (asdf:system-source-directory :sas-parser)))))))
+    (finishes (parse path))))
 

@@ -14,7 +14,7 @@
   :author "Masataro Asai"
   :license "LLGPL"
   :depends-on (:sas-parser
-               :fiveam)
+               :fiveam :iolib)
   :components ((:module "t"
                 :components
                 ((:file "package"))))
