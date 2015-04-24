@@ -25,7 +25,9 @@
                       (merge-pathnames
                        "t/translated/*.sas"
                        (asdf:system-source-directory :sas-parser)))))))
-    (finishes (parse path))))
+    (handler-bind ((warning #'muffle-warning)
+                   (error (lambda (c) (print path))))
+      (finishes (parse path)))))
 
 
 
@@ -36,5 +38,7 @@
                       (merge-pathnames
                        "t/preprocessed/*.sasp"
                        (asdf:system-source-directory :sas-parser)))))))
-    (finishes (parse path))))
+    (handler-bind ((warning #'muffle-warning)
+                   (error (lambda (c) (print path))))
+      (finishes (parse path)))))
 
