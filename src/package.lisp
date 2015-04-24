@@ -35,17 +35,22 @@
 
 (defmacro section-parser (name var parser-fn next &body if-not-exists)
   (let ((fn-name (intern (substitute #\- #\_ (string-upcase (concatenate 'string name "-section"))))))
-    `(progn
-       (defvar ,var nil)
-       (defun ,fn-name ()
-         (match (read-line *standard-input* nil)
-           ((begin ,name)
-            (let ((,var (funcall ,parser-fn)))
-              (match (read-line)
-                ((end ,name)
-                 (funcall ,next))
-                (_ (sas-parse-error ,name)))))
-           (_ ,@if-not-exists))))))
+    `(defun ,fn-name ()
+       (match (read-line *standard-input* nil)
+         ((begin ,name)
+          (let ((,var (funcall ,parser-fn)))
+            (match (read-line)
+              ((end ,name)
+               ,next)
+              (_ (sas-parse-error ,name)))))
+         (_ ,@if-not-exists)))))
+(defmacro sections-parser (name var section-fn &body next)
+  `(defun ,name ()
+     (let ((,var
+            (iter (with *total* = (read))
+                  (for *count* below *total*)
+                  (collect (,section-fn) result-type 'vector))))
+       ,@next)))
 
 ;;; parse sections
 
@@ -63,52 +68,73 @@
           (funcall continue)
           (funcall next)))))
 
-(section-parser "version" *version* #'read #'metric-section
+(defvar *version*)
+(section-parser "version" *version* #'read (metric-section)
   (error "version 1 or 2 !"))
-(section-parser "metric" *metric* #'read
-    (call/counter #'variable-section #'mutex-group-section)
+(defvar *metric*)
+(section-parser "metric" *metric* #'read (variable-sections)
   (error "version 1 !"))
-(section-parser "variable" *variables* #'read-variable
-    (next-section #'variable-section
-                  (call/counter #'mutex-group-section #'state-section))
+(defvar *variables*)
+(sections-parser variable-sections *variables* variable-section
+  (mutex-group-sections))
+(section-parser "variable" var #'read-variable var
   (error "insufficient number of variable sections !"))
-(section-parser "mutex_group" *mutex-groups* #'read-mutex-group
-    (next-section #'mutex-group-section #'state-section)
+(defvar *mutex-groups*)
+(sections-parser mutex-group-sections *mutex-groups* mutex-group-section
+  (state-section))
+(section-parser "mutex_group" mg #'read-mutex-group mg
   (error "insufficient number of mutex_group sections !"))
-(section-parser "state" *states* #'read-state #'goal-section
+(defvar *states*)
+(section-parser "state" *states* #'read-state (goal-section)
   (error "missing states!"))
-(section-parser "goal" *goals* #'read-goal
-    (call/counter #'operator-section #'rule-section)
+(defvar *goals*)
+(section-parser "goal" *goals* #'read-goal (operator-sections)
   (error "missing goals!"))
-(section-parser "operator" *operators* #'read-operator
-    (next-section #'operator-section (call/counter #'rule-section #'sg-section))
+(defvar *operators*)
+(sections-parser operator-sections *operators* operator-section
+  (rule-sections))
+(section-parser "operator" op #'read-operator op
   (error "insufficient number of operator sections!"))
-(section-parser "rule" *rules* #'read-rule (next-section #'rule-section #'sg-section)
+(sections-parser rule-sections rules rule-section
+  (let ((*operators* (concatenate 'vector *operators* rules)))
+    (sg-section)))
+(section-parser "rule" r #'read-rule r
   (error "insufficient number of rule sections!"))
-(section-parser "SG" *sg* #'read-sg
-    (call/counter #'dtg-section #'cg-section (lambda () (length *variables*)))
+(defvar *sg*)
+(section-parser "SG" *sg* #'read-sg (dtg-sections)
   (warn "this is a translator file")
-  (finalize))
-(section-parser "DTG" *dtgs* #'read-dtg (next-section #'dtg-section #'cg-section)
+  (finalize-translator))
+(defvar *dtgs*)
+(defun dtg-sections ()
+  (let ((*dtgs*
+         (iter
+           (with *total* = (length *variables*))
+           (for *count* below *total*)
+           (collect (dtg-section) result-type 'vector))))
+    (cg-section)))
+(section-parser "DTG" g #'read-dtg g
   (error "insufficient number of dtg sections!"))
-(section-parser "CG" *cgs* #'read-cg #'finalize
+(defvar *cgs*)
+(section-parser "CG" *cgs* #'read-cg (finalize)
   (error "missing CG section!"))
 
 (defun finalize ()
-  )
+  (values *version* *metric* *variables* *mutex-groups* *states*
+          *goals* *operators* *sg* *dtgs* *cgs*))
+(defun finalize-translator ()
+  (values *version* *metric* *variables* *mutex-groups* *states*
+          *goals* *operators*))
 
 ;;;; section reader
 
 (defstruct variable name axiom-layer values)
 
 (defun read-variable ()
-  (let* ((*variables* (or *variables* (make-array *total* :fill-pointer 0)))
-         (name (read))
+  (let* ((name (read))
          (axiom-layer (read))
          (range (read))
          (values (read-values range)))
-    (vector-push (variable name axiom-layer values) *variables*)
-    *variables*))
+    (variable name axiom-layer values)))
 
 (defun read-values (range)
   (iter (for i below range)
@@ -134,9 +160,7 @@
            (collecting (elt values (read)) result-type 'vector)))))
 
 (defun read-mutex-group ()
-  (let ((*mutex-groups* (or *mutex-groups* (make-array *total* :fill-pointer 0))))
-    (vector-push (read-fixed-number-of-atoms) *mutex-groups*)
-    *mutex-groups*))
+  (read-fixed-number-of-atoms))
 
 (defun read-state ()
   (iter (for var in-vector *variables* with-index i)
@@ -157,9 +181,7 @@
            (prevail (read-fixed-number-of-atoms))
            (effects (read-effects))
            (cost (read)))
-      (let ((*operators* (or *operators* (make-array *total* :fill-pointer 0))))
-        (vector-push (operator name args prevail effects cost) *operators*)
-        *operators*))))
+      (operator name args prevail effects cost))))
 
 (defstruct effect conditions affected require newval)
 
@@ -183,9 +205,7 @@
 (defun read-rule ()
   (let ((body (read-fixed-number-of-atoms)))
     (multiple-value-bind (aff req new) (read-effect-transition)
-      (let ((*rules* (or *rules* (make-array *total* :fill-pointer 0))))
-        (vector-push (operator :axiom body (effect (vector) aff req new) 0) *rules*)
-        *rules*))))
+      (operator :axiom body (effect (vector) aff req new) 0))))
 
 
 (defstruct generator-switch switch immediate-ops generator-for-value default-generator)
@@ -211,19 +231,15 @@
     (main)))
 
 (defun read-dtg ()
-  (let ((*dtgs* (or *dtgs* (make-array (length *variables*) :fill-pointer 0))))
-    (let ((var (elt *variables* *count*)))
-      (vector-push
-       (iter outer
-             (for from
-                  in-vector (variable-values var)
-                  with-index i)
-             (iter (repeat (read))
-                   (for to = (elt (variable-values var) (read)))
-                   (in outer
-                       (collect (read-transition from to) result-type 'vector))))
-       *dtgs*)
-      *dtgs*)))
+  (let ((var (elt *variables* *count*)))
+    (iter outer
+          (for from
+               in-vector (variable-values var)
+               with-index i)
+          (iter (repeat (read))
+                (for to = (elt (variable-values var) (read)))
+                (in outer
+                    (collect (read-transition from to) result-type 'vector))))))
 
 (defstruct transition from to op conditions)
 (defun read-transition (from to)
