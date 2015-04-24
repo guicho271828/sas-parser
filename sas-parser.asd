@@ -22,7 +22,7 @@
   :author "Masataro Asai"
   :mailto "guicho2.71828@gmail.com"
   :license "LLGPL"
-  :depends-on (:trivia.ppcre :cl-ppcre :eazy-process :trivia :alexandria :immutable-struct)
+  :depends-on (:trivia.ppcre :cl-ppcre :trivia :alexandria :immutable-struct)
   :components ((:module "src"
                 :components
                 ((:file "package"))))
