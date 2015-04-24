@@ -145,9 +145,9 @@
 
 (defun read-value ()
   (ematch (read-line)
-    ((ppcre "Atom ([^\\(]*)\\((.*)\\)" name args)
+    ((ppcre "^Atom ([^\\(]*)\\((.*)\\)" name args)
      (sas-atom (read-from-string name) (mapcar #'read-from-string (split ",\\s*" args))))
-    ((ppcre "NegatedAtom ([^\\(]*)\\((.*)\\)" name args)
+    ((ppcre "^NegatedAtom ([^\\(]*)\\((.*)\\)" name args)
      (negated-atom (read-from-string name) (mapcar #'read-from-string (split ",\\s*" args))))
     ("<none of those>"
      (sas-atom :none-of-those nil))))
