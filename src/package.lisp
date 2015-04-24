@@ -118,12 +118,15 @@
 (section-parser "CG" *cgs* #'read-cg (finalize)
   (error "missing CG section!"))
 
+
+(defstruct sas metric variables states goals operators)
 (defun finalize ()
-  (values *version* *metric* *variables* *mutex-groups* *states*
-          *goals* *operators* *sg* *dtgs* *cgs*))
+  (values *version*
+          (sas *metric* *variables* *states* *goals* *operators*)
+          *mutex-groups* *sg* *dtgs* *cgs*))
 (defun finalize-translator ()
-  (values *version* *metric* *variables* *mutex-groups* *states*
-          *goals* *operators*))
+  (values *version*
+          (sas *metric* *variables* *states* *goals* *operators*)))
 
 ;;;; section reader
 
