@@ -22,9 +22,9 @@
   :author "Masataro Asai"
   :mailto "guicho2.71828@gmail.com"
   :license "LLGPL"
-  :depends-on (:trivia.ppcre :cl-ppcre :trivia :alexandria :immutable-struct)
+  :depends-on (:trivia.ppcre :cl-ppcre :trivia :alexandria :iterate :immutable-struct)
   :components ((:module "src"
                 :components
                 ((:file "package"))))
   :description "Fast Downward SAS parser for common lisp"
-  :in-order-to ((test-op (load-op :sas-parser.test))))
+  :in-order-to ((test-op (test-op :sas-parser.test))))

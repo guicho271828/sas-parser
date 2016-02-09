@@ -7,8 +7,7 @@
 (defpackage :sas-parser.test
   (:use :cl
         :sas-parser
-        :fiveam
-        :trivia.ppcre :cl-ppcre :eazy-process :trivia :alexandria))
+        :fiveam :alexandria))
 (in-package :sas-parser.test)
 
 
@@ -26,7 +25,7 @@
                        "t/translated/*.sas"
                        (asdf:system-source-directory :sas-parser)))))))
     (handler-bind ((warning #'muffle-warning)
-                   (error (lambda (c) (print path))))
+                   (error (lambda (c) (declare (ignorable c)) (print path))))
       (finishes (parse path)))))
 
 
@@ -39,6 +38,6 @@
                        "t/preprocessed/*.sasp"
                        (asdf:system-source-directory :sas-parser)))))))
     (handler-bind ((warning #'muffle-warning)
-                   (error (lambda (c) (print path))))
+                   (error (lambda (c) (declare (ignorable c)) (print path))))
       (finishes (parse path)))))
 

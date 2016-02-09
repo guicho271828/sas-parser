@@ -14,9 +14,10 @@
   :author "Masataro Asai"
   :license "LLGPL"
   :depends-on (:sas-parser
-               :fiveam :iolib)
+               :fiveam)
   :components ((:module "t"
                 :components
                 ((:file "package"))))
-  :perform (load-op :after (op c) (eval (read-from-string "(every #'fiveam::TEST-PASSED-P (5am:run! :sas-parser))"))
-))
+  :perform (test-op :after (op c)
+                    (eval (read-from-string
+                           "(every #'fiveam::TEST-PASSED-P (5am:run! :sas-parser))"))))
