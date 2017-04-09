@@ -7,7 +7,8 @@
 (defpackage :sas-parser.test
   (:use :cl
         :sas-parser
-        :fiveam :alexandria))
+        :fiveam :alexandria)
+  (:shadowing-import-from :sas-parser :variable))
 (in-package :sas-parser.test)
 
 
