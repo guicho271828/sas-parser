@@ -133,7 +133,10 @@
 (defun finalize ()
   (values *version*
           (sas *metric* *variables* *states* *goals* *operators*)
-          *mutex-groups* *sg* *dtgs* *cgs*))
+          (list :mutex-groups *mutex-groups*
+                :successor-generator *sg*
+                :domain-transition-graph *dtgs*
+                :causal-graph *cgs*)))
 (defun finalize-translator ()
   (values *version*
           (sas *metric* *variables* *states* *goals* *operators*)))
