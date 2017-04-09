@@ -9,7 +9,17 @@
         :immutable-struct)
   (:shadow :variable :next)
   (:shadowing-import-from :immutable-struct :ftype :defstruct)
-  (:export :parse))
+  (:export :parse
+           :sas
+           :variable
+           :sas-atom
+           :negated-atom
+           :operator
+           :effect
+           :generator-switch
+           :generator-generator
+           :transition
+           :cause))
 (in-package :sas-parser)
 
 ;;; api
