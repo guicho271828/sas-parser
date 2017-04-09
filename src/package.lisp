@@ -5,7 +5,7 @@
 ;;; package
 (in-package :cl-user)
 (defpackage sas-parser
-  (:use :cl :trivia.ppcre :cl-ppcre :trivia :alexandria :iterate
+  (:use :cl :trivia.ppcre :trivia :alexandria :iterate
         :immutable-struct)
   (:shadow :variable :next)
   (:shadowing-import-from :immutable-struct :ftype :defstruct)
