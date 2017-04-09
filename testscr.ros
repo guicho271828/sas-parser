@@ -7,7 +7,7 @@ exec ros -Q -- $0 "$@"
 (defun main (&rest argv)
   (declare (ignorable argv))
   (uiop:quit (if (handler-case
-                     (asdf:test-system :alien)
+                     (asdf:test-system :sas-parser)
                    (serious-condition (c)
                      (describe c)
                      (uiop:quit 2)))
