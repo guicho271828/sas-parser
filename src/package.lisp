@@ -129,17 +129,16 @@
   (error "missing CG section!"))
 
 
-(defstruct sas metric variables states goals operators)
+(defstruct sas metric variables states goals operators mutex-groups)
 (defun finalize ()
   (values *version*
-          (sas *metric* *variables* *states* *goals* *operators*)
-          (list :mutex-groups *mutex-groups*
-                :successor-generator *sg*
+          (sas *metric* *variables* *states* *goals* *operators* *mutex-groups*)
+          (list :successor-generator *sg*
                 :domain-transition-graph *dtgs*
                 :causal-graph *cgs*)))
 (defun finalize-translator ()
   (values *version*
-          (sas *metric* *variables* *states* *goals* *operators*)))
+          (sas *metric* *variables* *states* *goals* *operators* *mutex-groups*)))
 
 ;;;; section reader
 
