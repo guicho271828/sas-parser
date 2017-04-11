@@ -9,14 +9,6 @@
   Author: Masataro Asai (guicho2.71828@gmail.com)
 |#
 
-
-
-(in-package :cl-user)
-(defpackage sas-parser-asd
-  (:use :cl :asdf))
-(in-package :sas-parser-asd)
-
-
 (defsystem sas-parser
   :version "0.1"
   :author "Masataro Asai"
@@ -25,6 +17,7 @@
   :depends-on (:trivia.ppcre :cl-ppcre :trivia :alexandria :iterate :immutable-struct)
   :components ((:module "src"
                 :components
-                ((:file "package"))))
+                ((:file "package")
+                 (:file "sasp"))))
   :description "Fast Downward SAS parser for common lisp"
   :in-order-to ((test-op (test-op :sas-parser.test))))
