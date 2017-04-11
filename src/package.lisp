@@ -11,11 +11,33 @@
   (:shadowing-import-from :immutable-struct :ftype :defstruct)
   (:export :parse
            :sas
+           :sas-metric
+           :sas-variables
+           :sas-mutex-groups
+           :sas-operators
+           :sas-init
+           :sas-goals
            :variable
+           :variable-name
+           :variable-axiom-layer
+           :variable-values
            :sas-atom
+           :sas-atom-name
+           :sas-atom-args
            :negated-atom
+           :negated-atom-name
+           :negated-atom-args
            :operator
+           :operator-name
+           :operator-args
+           :operator-prevail
+           :operator-effects
+           :operator-cost
            :effect
+           :effect-conditions
+           :effect-affected
+           :effect-require
+           :effect-newval
            :generator-switch
            :generator-generator
            :transition
