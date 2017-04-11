@@ -214,7 +214,7 @@
           (ematch (read)
             (-1 :*)
             (valnum (elt (variable-values affected) valnum))))
-         (newval (read)))
+         (newval (elt (variable-values affected) (read))))
     (values affected require newval)))
 
 (defun read-rule ()
