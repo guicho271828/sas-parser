@@ -5,10 +5,8 @@
 ;;; package
 (in-package :cl-user)
 (defpackage sas-parser
-  (:use :cl :trivia.ppcre :trivia :alexandria :iterate
-        :immutable-struct)
+  (:use :cl :trivia.ppcre :trivia :alexandria :iterate)
   (:shadow :variable :next)
-  (:shadowing-import-from :immutable-struct :ftype :defstruct)
   (:export :parse
            :sas
            :sas-metric
@@ -138,7 +136,12 @@
 
 (defun finalize-translator ()
   (values *version*
-          (sas *metric* *variables* *mutex-groups* *operators* *states* *goals*)))
+          (make-sas :metric *metric*
+                    :variables *variables*
+                    :mutex-groups *mutex-groups*
+                    :operators *operators*
+                    :init *states*
+                    :goals *goals*)))
 
 ;;;; section reader
 
@@ -149,39 +152,39 @@
          (axiom-layer (read))
          (range (read))
          (values (read-values range)))
-    (variable name axiom-layer values)))
+    (make-variable :name name :axiom-layer axiom-layer :values values)))
 
 (defun read-values (range)
   (iter (for i below range)
         (collect (read-value) result-type vector)))
 
+(defstruct sas-atom name args)
+(defstruct (negated-atom (:include sas-atom)))
+
 (defun read-value ()
   (ematch (read-line)
     ((ppcre "^Atom ([^\\(]*)\\((.*)\\)" name args)
-     (sas-atom (read-from-string name) (mapcar #'read-from-string (ppcre:split ",\\s*" args))))
+     (make-sas-atom :name (read-from-string name)
+                    :args (mapcar #'read-from-string (ppcre:split ",\\s*" args))))
     ((ppcre "^NegatedAtom ([^\\(]*)\\((.*)\\)" name args)
-     (negated-atom (read-from-string name) (mapcar #'read-from-string (ppcre:split ",\\s*" args))))
+     (make-negated-atom :name (read-from-string name)
+                        :args (mapcar #'read-from-string (ppcre:split ",\\s*" args))))
     ("<none of those>"
-     (sas-atom :none-of-those nil))))
-
-(defstruct sas-atom name args)
-(defstruct (negated-atom (:include sas-atom)))
+     (make-sas-atom :name :none-of-those
+                    :args nil))))
 
 (defun read-fixed-number-of-atoms ()
   (iter (for i below (read))
         ;; one line for each fact
-        (ematch (elt *variables* (read))
-          ((variable values)
-           (collecting (elt values (read)) result-type 'vector)))))
+        (collecting (cons (read) (read))
+                    result-type 'vector)))
 
 (defun read-mutex-group ()
   (read-fixed-number-of-atoms))
 
 (defun read-state ()
   (iter (for var in-vector *variables* with-index i)
-        (ematch var
-          ((variable values)
-           (collecting (elt values (read)) result-type 'vector)))))
+        (collecting (read) result-type 'vector)))
 
 (defun read-goal ()
   (read-fixed-number-of-atoms))
@@ -196,7 +199,7 @@
            (prevail (read-fixed-number-of-atoms))
            (effects (read-effects))
            (cost (read)))
-      (operator name args prevail effects cost))))
+      (make-operator :name name :args args :prevail prevail :effects effects :cost cost))))
 
 (defstruct effect conditions affected require newval)
 
@@ -205,20 +208,24 @@
         (let ((effect-conditions (read-fixed-number-of-atoms)))
           (multiple-value-bind (aff req new) (read-effect-transition)
             (collect
-                (effect effect-conditions aff req new)
+                (make-effect :conditions effect-conditions :affected aff :require req :newval new)
               result-type 'vector)))))
 
 (defun read-effect-transition ()
-  (let* ((affected (elt *variables* (read)))
-         (require
-          (ematch (read)
-            (-1 :*)
-            (valnum (elt (variable-values affected) valnum))))
-         (newval (elt (variable-values affected) (read))))
+  (let* ((affected (read))
+         (require (read))
+         (newval (read)))
     (values affected require newval)))
 
 (defun read-rule ()
   (let ((body (read-fixed-number-of-atoms)))
     (multiple-value-bind (aff req new) (read-effect-transition)
-      (operator :axiom body (effect (vector) aff req new) 0))))
+      (make-operator :name :axiom
+                     :args (vector)
+                     :prevail body
+                     :effects (vector (make-effect :conditions (vector)
+                                                   :affected aff
+                                                   :require req
+                                                   :newval new))
+                     :cost 0))))
 

@@ -20,7 +20,12 @@
 
 (defun finalize ()
   (values *version*
-          (sas *metric* *variables* *mutex-groups* *operators* *states* *goals*)
+          (make-sas :metric *metric*
+                    :variables *variables*
+                    :mutex-groups *mutex-groups*
+                    :operators *operators*
+                    :init *states*
+                    :goals *goals*)
           (list :successor-generator *sg*
                 :domain-transition-graph *dtgs*
                 :causal-graph *cgs*)))
@@ -36,13 +41,14 @@
                  ((string= keyword "SWITCH") (read-switch (read)))
                  ((string= keyword "CHECK") (read-check (read))))))
            (read-switch (switch-var)
-             (generator-switch switch-var
-                               (main)
-                               (iter (for i below (length (variable-values (elt *variables* switch-var))))
-                                     (collect (main) result-type 'vector))
-                               (main)))
+             (make-generator-switch :switch              switch-var
+                                    :immediate-ops       (main)
+                                    :generator-for-value (iter (for i below (length (variable-values (elt *variables* switch-var))))
+                                                               (collect (main) result-type 'vector))
+                                    :default-generator   (main)))
            (read-check (count)
-             (generator-generator
+             (make-generator-generator
+              :op
               (iter (for i below count)
                     (collect (elt *operators* (read)) result-type 'vector)))))
     (main)))
@@ -60,9 +66,9 @@
 
 (defstruct transition from to op conditions)
 (defun read-transition (from to)
-  (transition from to
-              (elt *operators* (read))
-              (read-fixed-number-of-atoms)))
+  (make-transition :from from :to to
+                   :op (elt *operators* (read))
+                   :conditions (read-fixed-number-of-atoms)))
 
 (defstruct cause from to weight)
 (defun read-cg ()
@@ -71,7 +77,9 @@
         (iter (repeat (read))
               (in outer
                   (collect
-                      (cause var (elt *variables* (read)) (read))
+                      (make-cause :from var
+                                  :to (elt *variables* (read))
+                                  :weight (read))
                     result-type 'vector)))))
 
 
