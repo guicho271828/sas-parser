@@ -39,7 +39,12 @@
            :generator-switch
            :generator-generator
            :transition
-           :cause))
+           :cause
+           :sasp
+           :make-sasp
+           :sasp-successor-generator
+           :sasp-domain-transition-graph
+           :sasp-causal-graph))
 (in-package :sas-parser)
 
 ;;; api
@@ -132,16 +137,16 @@
 (section-parser "rule" r #'read-rule r
   (error "insufficient number of rule sections!"))
 
-(defstruct sas metric variables mutex-groups operators init goals)
+(defstruct sas version metric variables mutex-groups operators init goals)
 
 (defun finalize-translator ()
-  (values *version*
-          (make-sas :metric *metric*
-                    :variables *variables*
-                    :mutex-groups *mutex-groups*
-                    :operators *operators*
-                    :init *states*
-                    :goals *goals*)))
+  (make-sas :version *version*
+            :metric *metric*
+            :variables *variables*
+            :mutex-groups *mutex-groups*
+            :operators *operators*
+            :init *states*
+            :goals *goals*))
 
 ;;;; section reader
 

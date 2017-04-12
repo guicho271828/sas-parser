@@ -18,17 +18,19 @@
 (section-parser "CG" *cgs* #'read-cg (finalize)
   (error "missing CG section!"))
 
+(defstruct (sasp (:include sas)) successor-generator domain-transition-graph causal-graph)
+
 (defun finalize ()
-  (values *version*
-          (make-sas :metric *metric*
-                    :variables *variables*
-                    :mutex-groups *mutex-groups*
-                    :operators *operators*
-                    :init *states*
-                    :goals *goals*)
-          (list :successor-generator *sg*
-                :domain-transition-graph *dtgs*
-                :causal-graph *cgs*)))
+  (make-sasp :version *version*
+             :metric *metric*
+             :variables *variables*
+             :mutex-groups *mutex-groups*
+             :operators *operators*
+             :init *states*
+             :goals *goals*
+             :successor-generator *sg*
+             :domain-transition-graph *dtgs*
+             :causal-graph *cgs*))
 
 (defstruct generator-switch switch immediate-ops generator-for-value default-generator)
 (defstruct generator-generator op)
