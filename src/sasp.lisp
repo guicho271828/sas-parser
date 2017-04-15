@@ -26,6 +26,7 @@
              :variables *variables*
              :mutex-groups *mutex-groups*
              :operators *operators*
+             :axioms *axioms*
              :init *states*
              :goals *goals*
              :successor-generator *sg*

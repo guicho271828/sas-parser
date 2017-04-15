@@ -13,6 +13,7 @@
            :sas-variables
            :sas-mutex-groups
            :sas-operators
+           :sas-axioms
            :sas-init
            :sas-goals
            :variable
@@ -42,6 +43,13 @@
            :cause
            :sasp
            :make-sasp
+           :sasp-metric
+           :sasp-variables
+           :sasp-mutex-groups
+           :sasp-operators
+           :sasp-axioms
+           :sasp-init
+           :sasp-goals
            :sasp-successor-generator
            :sasp-domain-transition-graph
            :sasp-causal-graph))
@@ -131,13 +139,13 @@
   (rule-sections))
 (section-parser "operator" op #'read-operator op
   (error "insufficient number of operator sections!"))
-(sections-parser rule-sections rules rule-section
-  (let ((*operators* (concatenate 'vector *operators* rules)))
-    (sg-section)))
+(defvar *axioms*)
+(sections-parser rule-sections *axioms* rule-section
+  (sg-section))
 (section-parser "rule" r #'read-rule r
   (error "insufficient number of rule sections!"))
 
-(defstruct sas version metric variables mutex-groups operators init goals)
+(defstruct sas version metric variables mutex-groups operators axioms init goals)
 
 (defun finalize-translator ()
   (make-sas :version *version*
@@ -145,6 +153,7 @@
             :variables *variables*
             :mutex-groups *mutex-groups*
             :operators *operators*
+            :axioms *axioms*
             :init *states*
             :goals *goals*))
 
