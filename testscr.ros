@@ -4,6 +4,7 @@
 exec ros -Q -- $0 "$@"
 |#
 
+(ql:quickload :sas-parser.test)
 (defun main (&rest argv)
   (declare (ignorable argv))
   (uiop:quit (if (handler-case
